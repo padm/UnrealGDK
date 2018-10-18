@@ -95,6 +95,7 @@ Worker_RequestId USpatialSender::CreateEntity(USpatialActorChannel* Channel)
 	WriteAclMap ComponentWriteAcl;
 	ComponentWriteAcl.Add(SpatialConstants::POSITION_COMPONENT_ID, ServersOnly);
 	ComponentWriteAcl.Add(SpatialConstants::ROTATION_COMPONENT_ID, ServersOnly);
+	ComponentWriteAcl.Add(SpatialConstants::INTEREST_COMPONENT_ID, ServersOnly);
 	ComponentWriteAcl.Add(SpatialConstants::ENTITY_ACL_COMPONENT_ID, ServersOnly);
 
 	ForAllSchemaComponentTypes([&](ESchemaComponentType Type)
@@ -132,6 +133,7 @@ Worker_RequestId USpatialSender::CreateEntity(USpatialActorChannel* Channel)
 	ComponentDatas.Add(improbable::EntityAcl(ReadAcl, ComponentWriteAcl).CreateEntityAclData());
 	ComponentDatas.Add(improbable::Persistence().CreatePersistenceData());
 	ComponentDatas.Add(improbable::Rotation(Actor->GetActorRotation()).CreateRotationData());
+	ComponentDatas.Add(improbable::Interest().CreateInterestData());
 	ComponentDatas.Add(improbable::UnrealMetadata({}, ClientWorkerAttribute).CreateUnrealMetadataData());
 
 	if (Actor->GetClass()->HasAnySpatialClassFlags(SPATIALCLASS_Singleton))
