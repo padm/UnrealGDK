@@ -322,7 +322,6 @@ void USpatialReceiver::ReceiveActor(Worker_EntityId EntityId)
 		}
 
 		// Set up actor channel.
-		USpatialPackageMapClient* SpatialPackageMap = Cast<USpatialPackageMapClient>(Connection->PackageMap);
 		USpatialActorChannel* Channel = Cast<USpatialActorChannel>(Connection->CreateChannel(CHTYPE_Actor, NetDriver->IsServer()));
 		if (!Channel)
 		{
@@ -343,7 +342,8 @@ void USpatialReceiver::ReceiveActor(Worker_EntityId EntityId)
 
 		FClassInfo* Info = TypebindingManager->FindClassInfoByClass(ActorClass);
 
-		SpatialPackageMap->ResolveEntityActor(EntityActor, EntityId, improbable::CreateOffsetMapFromActor(EntityActor, Info));
+		PackageMap->ResolveEntityActor(EntityActor, EntityId, improbable::CreateOffsetMapFromActor(EntityActor, Info));
+
 		Channel->SetChannelActor(EntityActor);
 
 		// Apply initial replicated properties.
@@ -460,7 +460,8 @@ void USpatialReceiver::RemoveActor(Worker_EntityId EntityId)
 	}
 	NetDriver->StopIgnoringAuthoritativeDestruction();
 
-	CleanupDeletedEntity(EntityId);
+	Actor->SetActorAsProxy(true);
+	//CleanupDeletedEntity(EntityId);
 }
 
 void USpatialReceiver::CleanupDeletedEntity(Worker_EntityId EntityId)
