@@ -210,7 +210,6 @@ void ComponentFactory::AddProperty(Schema_Object* Object, Schema_FieldId FieldId
 			}
 
 			ObjectRef = FUnrealObjectRef(PackageMap->GetUnrealObjectRefFromNetGUID(NetGUID));
-			AssignUnrealObjectRefToContext(Property, Data, ObjectRef);
 
 			if (ObjectRef == SpatialConstants::UNRESOLVED_OBJECT_REF)
 			{
@@ -219,10 +218,6 @@ void ComponentFactory::AddProperty(Schema_Object* Object, Schema_FieldId FieldId
 				UnresolvedObjects.Add(ObjectValue);
 				ObjectRef = SpatialConstants::NULL_OBJECT_REF;
 			}
-		}
-		else
-		{
-			AssignUnrealObjectRefToContext(Property, Data, ObjectRef);
 		}
 
 		AddObjectRefToSchema(Object, FieldId, ObjectRef);
@@ -322,7 +317,7 @@ Worker_ComponentData ComponentFactory::CreateHandoverComponentData(Worker_Compon
 	return ComponentData;
 }
 
-TArray<Worker_ComponentUpdate> ComponentFactory::CreateComponentUpdates(UObject* Object, FClassInfo* Info, const FRepChangeState* RepChangeState, const FHandoverChangeState* HandoverChangeState)
+TArray<Worker_ComponentUpdate> ComponentFactory::CreateComponentUpdates(UObject* Object, FClassInfo* Info, Worker_EntityId EntityId, const FRepChangeState* RepChangeState, const FHandoverChangeState* HandoverChangeState)
 {
 	TArray<Worker_ComponentUpdate> ComponentUpdates;
 
@@ -359,6 +354,17 @@ TArray<Worker_ComponentUpdate> ComponentFactory::CreateComponentUpdates(UObject*
 			{
 				ComponentUpdates.Add(HandoverUpdate);
 			}
+		}
+	}
+
+	// Update the actor proxy interest
+	if (ResolvedChangedActorProxyMap.Num() > 0)
+	{
+		bool bWroteSomething = false;
+		Worker_ComponentUpdate ActorProxyInterestUpdate = CreateHandoverComponentUpdate(SpatialConstants::INTEREST_COMPONENT_ID, Object, Info, *HandoverChangeState, bWroteSomething);
+		if (bWroteSomething)
+		{
+			ComponentUpdates.Add(ActorProxyInterestUpdate);
 		}
 	}
 
@@ -415,19 +421,44 @@ Worker_ComponentUpdate ComponentFactory::CreateHandoverComponentUpdate(Worker_Co
 	return ComponentUpdate;
 }
 
-void ComponentFactory::AssignUnrealObjectRefToContext(UProperty* Property, const uint8* Data, FUnrealObjectRef ObjectRef)
+Worker_ComponentData ComponentFactory::CreateInterestComponentData(UObject* Object, bool& bWroteSomething, Worker_EntityId EntityId)
 {
-	UObject* Outer = Property->GetOuter();
-	//// TODO: This check will be removed once arrays contexts are supported UNR-633
-	//if (Outer->IsA<UStruct>() && Property->ArrayDim == 1)
-	//{
-	//	UStruct* Owner = Cast<UStruct>(Outer);
-	//	const FString ContextName = Property->GetName() + TEXT("_SpatialOSContext");
-	//	UProperty* ContextProperty = Owner->FindPropertyByName(*ContextName);
-	//	const int32 PropertyOffsetDiff = ContextProperty->GetOffset_ForInternal() - Property->GetOffset_ForInternal();
-	//	FUnrealObjectRef& Context = *(reinterpret_cast<FUnrealObjectRef*>(const_cast<uint8*>(Data) + PropertyOffsetDiff));
-	//	Context = ObjectRef;
-	//}
+	Worker_ComponentData ComponentData = {};
+	ComponentData.component_id = SpatialConstants::INTEREST_COMPONENT_ID;
+	ComponentData.schema_type = Schema_CreateComponentData(SpatialConstants::INTEREST_COMPONENT_ID);
+	Schema_Object* ComponentObject = Schema_GetComponentDataFields(ComponentData.schema_type);
+
+	bWroteSomething = FillInterestSchemaObject(ComponentObject, EntityId);
+
+	return ComponentData;
+}
+
+Worker_ComponentUpdate ComponentFactory::CreateInterestComponentUpdate(UObject* Object, bool& bWroteSomething, Worker_EntityId EntityId)
+{
+	Worker_ComponentUpdate ComponentUpdate = {};
+
+	ComponentUpdate.component_id = SpatialConstants::INTEREST_COMPONENT_ID;
+	ComponentUpdate.schema_type = Schema_CreateComponentUpdate(SpatialConstants::INTEREST_COMPONENT_ID);
+	Schema_Object* ComponentObject = Schema_GetComponentUpdateFields(ComponentUpdate.schema_type);
+
+	bWroteSomething = FillInterestSchemaObject(ComponentObject, EntityId);
+
+	return ComponentUpdate;
+}
+
+bool ComponentFactory::FillInterestSchemaObject(Schema_Object* ComponentObject, Worker_EntityId EntityId)
+{
+	// Get the previous state of the component
+	improbable::Interest* InterestData = NetDriver->StaticComponentView->GetComponentData<improbable::Interest>(EntityId);
+
+	for (auto& ComponentInterestEntry : InterestData->ComponentInterest)
+	{
+
+
+	}
+	// Iterate over each resolved actorproxy and assign interest for it.
+
+	return true;
 }
 
 }
